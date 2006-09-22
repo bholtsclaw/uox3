@@ -12,6 +12,7 @@
 //o--------------------------------------------------------------------------o
 #include "uox3.h"
 #include "cVersionClass.h"
+#include <QDir>
 
 namespace UOX
 {
@@ -320,7 +321,8 @@ UI16 cAccountClass::CreateAccountSystem(void)
 					sTemp += "/";
 					actb.sPath=sTemp;
 					// Need to create the directory for this entry as an access.adm isn't available
-					_mkdir(actb.sPath.c_str(),0777);
+					QDir mDir( "." );
+					bool didMake = mDir.mkpath( QString::fromStdString( actb.sPath ) );
 					// Now build the uad filename, and path,
 					sTemp += actb.sUsername;
 					sTemp += ".uad";
@@ -468,8 +470,9 @@ UI16 cAccountClass::CreateAccountSystem(void)
 				sNewPath += "/";
 			}
 			// Create the accounts directory now that we have the username added. If it exists it doesn't matter.
-			int nDummy = _mkdir(sNewPath.c_str(), 0777);
-			if( nDummy<0 )
+			QDir mDir( "." );
+			bool didMake = mDir.mkpath( QString::fromStdString( sNewPath ) );
+			if( !didMake )
 			{
 				// if directory exists then we just skip this.
 	#ifdef WIN32
@@ -693,8 +696,9 @@ UI16 cAccountClass::AddAccount(std::string sUsername, std::string sPassword, std
 		actbTemp.sPath = sTempPath;
 	}
 	// Ok now that we got here we need to make the directory, and create the username.uad file
-	int nDummy=_mkdir(actbTemp.sPath.c_str(), 0777);
-	if( nDummy<0 )
+	QDir mDir( "." );
+	bool didMake = mDir.mkpath( QString::fromStdString( actbTemp.sPath ) );
+	if( !didMake )
 	{
 		// if directory exists then we just skip this.
 #ifdef WIN32
@@ -1721,8 +1725,9 @@ UI16 cAccountClass::Save(bool bForceLoad)
 		}
 		// Close the test path
 		// Ok now that we got here we need to make the directory, and create the username.uad file
-		int nDummy=_mkdir(actbID.sPath.c_str(), 0777);
-		if( nDummy<0 )
+		QDir mDir( "." );
+		bool didMake = mDir.mkpath( QString::fromStdString( actbID.sPath ) );
+		if( !didMake )
 		{
 			// if directory exists then we just skip this.
 #ifdef WIN32

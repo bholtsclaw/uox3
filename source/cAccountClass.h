@@ -21,16 +21,6 @@
 
 #include <iosfwd>
 
-#if UOX_PLATFORM != PLATFORM_WIN32
-	#include <dirent.h>
-	#define _stat stat
-	#define _mkdir mkdir
-	#define _rmdir rmdir
-#else
-	#include <direct.h>
-	#define _mkdir(s1,s2) _mkdir(s1)
-#endif
-
 namespace UOX
 {
 

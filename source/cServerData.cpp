@@ -2,11 +2,7 @@
 #include "scriptc.h"
 #include "ssection.h"
 
-#if UOX_PLATFORM != PLATFORM_WIN32
-	#include <dirent.h>
-#else
-	#include <direct.h>
-#endif
+#include <QDir>
 
 namespace UOX
 {
@@ -143,35 +139,18 @@ void CServerData::ResetDefaults( void )
 	CombatNPCDamageRate( 2 );
 	RankSystemStatus( true );
 
-	char curWorkingDir[1024];
-	GetCurrentDirectory( 1024, curWorkingDir );
-	UString wDir( curWorkingDir );
-	wDir = wDir.fixDirectory();
+	QDir currentDir( "." );
+	UString wDir( currentDir.canonicalPath().toStdString() );
+	wDir									= wDir.fixDirectory();
+	std::string strDefaults[CSDDP_COUNT]	= { ".", "muldata/", "dfndata/", "accounts/", "accounts/", "js/", "archives/", "msgboards/", "shared/", "html/", "books/", "dictionaries/", "logs/" };
+
 	UString tDir;
 	Directory( CSDDP_ROOT, wDir );
-	tDir = wDir + "muldata/";
-	Directory( CSDDP_DATA, tDir );
-	tDir = wDir + "dfndata/";
-	Directory( CSDDP_DEFS, tDir );
-	tDir = wDir + "accounts/";
-	Directory( CSDDP_ACCOUNTS, tDir );
-	Directory( CSDDP_ACCESS, tDir );
-	tDir = wDir + "js/";
-	Directory( CSDDP_SCRIPTS, tDir );
-	tDir = wDir + "archives/";
-	Directory( CSDDP_BACKUP, tDir );
-	tDir = wDir + "msgboards/";
-	Directory( CSDDP_MSGBOARD, tDir );
-	tDir = wDir + "shared/";
-	Directory( CSDDP_SHARED, tDir );
-	tDir = wDir + "html/";
-	Directory( CSDDP_HTML, tDir );
-	tDir = wDir + "books/";
-	Directory( CSDDP_BOOKS, tDir );
-	tDir = wDir + "dictionaries/";
-	Directory( CSDDP_DICTIONARIES, tDir );
-	tDir = wDir + "logs/";
-	Directory( CSDDP_LOGS, tDir );
+	for( int k = CSDDP_DATA; k < CSDDP_COUNT; ++k )
+	{
+		tDir = wDir + strDefaults[k];
+		Directory( (CSDDirectoryPaths)k, tDir );
+	}
 
 	BuyThreshold( 2000 );
 	GuardStatus( true );
@@ -531,13 +510,8 @@ void CServerData::Directory( CSDDirectoryPaths dp, std::string value )
 		bool error = false;
 		if( !resettingDefaults )
 		{
-			char curWorkingDir[1024];
-			GetCurrentDirectory( 1024, curWorkingDir );
-			int iResult = _chdir( sText.c_str() );
-			if( iResult != 0 )
-				error = true;
-			else
-				_chdir( curWorkingDir );	// move back to where we were
+			QDir dirTest( QString::fromStdString( sText ) );
+			error = !dirTest.exists();
 		}
 
 		if( error )

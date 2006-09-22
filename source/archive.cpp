@@ -1,5 +1,6 @@
 #include "uox3.h"
 #include "regions.h"
+#include <QDir>
 #if UOX_PLATFORM != PLATFORM_WIN32
 	#include <dirent.h>
 #else
@@ -86,8 +87,9 @@ void fileArchive( void )
 
 	std::string backupRoot	= cwmWorldState->ServerData()->Directory( CSDDP_BACKUP );
 	backupRoot				+= timebuffer;
-	int makeResult = _mkdir( backupRoot.c_str(), 0777 );
-	if( makeResult == 0 )
+	QDir mDir( "." );
+	bool didMake			= mDir.mkpath( QString::fromStdString( backupRoot ) );
+	if( didMake )
 	{
 		Console << "NOTICE: Accounts not backed up. Archiving will change. Sorry for the trouble." << myendl;
 

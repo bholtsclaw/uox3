@@ -17,16 +17,13 @@ private:
 	typedef std::vector< cDirectoryListing > DIRLIST;
 	typedef std::vector< cDirectoryListing >::iterator DIRLIST_ITERATOR;
 
-	bool			PushDir( DEFINITIONCATEGORIES toMove );
-	bool			PushDir( std::string toMove );
-	void			PopDir( void );
-
 	STRINGLIST		filenameList, shortList;
 	STRINGLIST		flattenedShort, flattenedFull;
-	dirList			dirs;
 	std::string		extension;
 	std::string		currentDir;
 	std::string		shortCurrentDir;
+
+	std::string		dirToScan;
 
 	DIRLIST			subdirectories;
 	bool			doRecursion;

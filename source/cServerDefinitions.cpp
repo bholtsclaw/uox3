@@ -13,6 +13,8 @@
 	#define getcwd _getcwd
 #endif
 
+#include <QDir>
+
 namespace UOX
 {
 
@@ -423,44 +425,6 @@ SI16 CServerDefinitions::GetPriority( const char *file )
 	return retVal;
 }
 
-bool cDirectoryListing::PushDir( DEFINITIONCATEGORIES toMove )
-{
-	std::string filePath	= cwmWorldState->ServerData()->Directory( CSDDP_DEFS );
-	filePath				+= dirnames[toMove];
-	return PushDir( filePath );
-}
-bool cDirectoryListing::PushDir( std::string toMove )
-{
-	std::string cwd = CurrentWorkingDir();
-	dirs.push( cwd );
-
-	if( _chdir( toMove.c_str() ) == 0 )
-	{
-		currentDir = toMove;
-		UString::replaceSlash( toMove );
-		shortCurrentDir = ShortDirectory( toMove );
-		return true;
-	}
-	else
-	{
-		Console.Error( "DFN directory %s does not exist", toMove.c_str() );
-		Shutdown( FATAL_UOX3_DIR_NOT_FOUND );
-	}
-	return false;
-}
-void cDirectoryListing::PopDir( void )
-{
-	if( dirs.empty() )
-	{
-		Console.Error( "cServerDefinition::PopDir called, but dirs is empty" );
-		Shutdown( FATAL_UOX3_DIR_NOT_FOUND );
-	}
-	else
-	{
-		_chdir( dirs.top().c_str() );
-		dirs.pop();
-	}
-}
 cDirectoryListing::cDirectoryListing( bool recurse ) : extension( "*.dfn" ), doRecursion( recurse )
 {
 }
@@ -476,26 +440,19 @@ cDirectoryListing::cDirectoryListing( DEFINITIONCATEGORIES dir, std::string exte
 }
 cDirectoryListing::~cDirectoryListing()
 {
-	while( !dirs.empty() )
-	{
-		_chdir( dirs.top().c_str() );
-		dirs.pop();
-	}
 }
 
 void cDirectoryListing::Retrieve( std::string dir )
 {
-	bool dirSet = PushDir( dir );
+	dirToScan	= dir;
 	InternalRetrieve();
-	if( dirSet )
-		PopDir();
 }
 void cDirectoryListing::Retrieve( DEFINITIONCATEGORIES dir )
 {
-	bool dirSet = PushDir( dir );
+	std::string filePath	= cwmWorldState->ServerData()->Directory( CSDDP_DEFS );
+	filePath				+= dirnames[dir];
+	dirToScan				= filePath;
 	InternalRetrieve();
-	if( dirSet )
-		PopDir();
 }
 
 STRINGLIST *cDirectoryListing::List( void )
@@ -520,100 +477,25 @@ STRINGLIST *cDirectoryListing::FlattenedShortList( void )
 
 void cDirectoryListing::InternalRetrieve( void )
 {
-	char filePath[512];
-
-#if UOX_PLATFORM != PLATFORM_WIN32
-	DIR *dir = opendir("."); 
-	struct dirent *dirp = NULL; 
-	struct stat dirstat; 
-
-	while( ( dirp = readdir( dir ) ) ) 
-	{ 
-		stat( dirp->d_name, &dirstat ); 
-		if( S_ISDIR( dirstat.st_mode ) ) 
-		{ 
-			if( strcmp( dirp->d_name, "." ) && strcmp( dirp->d_name, ".." ) && doRecursion ) 
-			{ 
-				subdirectories.push_back( cDirectoryListing( dirp->d_name, extension, doRecursion ) ); 
-				Console.Print( "%s/%s/n", currentDir.c_str(), dirp->d_name ); 
-			}
-			continue; 
-		}
-		shortList.push_back( dirp->d_name ); 
-		sprintf( filePath, "%s/%s", CurrentWorkingDir().c_str(), dirp->d_name ); 
-		filenameList.push_back( filePath ); 
-	} 
-
-#else 
-
-	WIN32_FIND_DATA toFind;
-	HANDLE findHandle = FindFirstFile( extension.c_str(), &toFind );		// grab first file that meets spec
-	BOOL retVal = 0;
-	if( findHandle != INVALID_HANDLE_VALUE )	// there is a file
+	QDir myDir( QString::fromStdString( dirToScan ) );
+	QFileInfoList list	= myDir.entryInfoList();
+	int maxList			= list.size();
+	for( int k = 0; k < maxList; ++k )
 	{
-		shortList.push_back( toFind.cFileName );
-		sprintf( filePath, "%s/%s", currentDir.c_str(), toFind.cFileName );
-		filenameList.push_back( filePath );
-		retVal = 1;	// let's continue
-	}
-	while( retVal != 0 )	// while there are still files
-	{
-		retVal = FindNextFile( findHandle, &toFind );	// grab the next file
-		if( retVal != 0 )
+		QFileInfo info = list.at( k );
+		if( info.isDir() && doRecursion && info.fileName() != "." && info.fileName() != ".." )
 		{
-			shortList.push_back( toFind.cFileName );
-			sprintf( filePath, "%s/%s", currentDir.c_str(), toFind.cFileName );
-			filenameList.push_back( filePath );
+			subdirectories.push_back( cDirectoryListing( info.canonicalPath().toStdString(), extension, doRecursion ) );
 		}
-	}
-	if( findHandle != INVALID_HANDLE_VALUE )
-	{
-		FindClose( findHandle );
-		findHandle = INVALID_HANDLE_VALUE;
-	}
-	if( doRecursion )
-	{
-		std::string temp;
-		WIN32_FIND_DATA dirFind;
-		HANDLE directoryHandle = FindFirstFile( "*.*", &dirFind );
-		BOOL dirRetval = 0;
-
-		if( directoryHandle != INVALID_HANDLE_VALUE )	// there is a file
+		else
 		{
-			if( ( dirFind.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == FILE_ATTRIBUTE_DIRECTORY )
+			if( QDir::match( QString::fromStdString( extension ), info.fileName() ) )
 			{
-				if( strcmp( dirFind.cFileName, "." ) && strcmp( dirFind.cFileName, ".." ) )
-				{
-					temp = BuildPath( dirFind.cFileName );
-					subdirectories.push_back( cDirectoryListing( temp, extension, doRecursion ) );
-				}
-				// it's a directory
+				shortList.push_back( info.fileName().toStdString() );
+				filenameList.push_back( info.canonicalFilePath().toStdString() );
 			}
-			dirRetval = 1;	// let's continue
-		}
-		while( dirRetval != 0 )	// while there are still files
-		{
-			dirRetval = FindNextFile( directoryHandle, &dirFind );	// grab the next file
-			if( dirRetval != 0 )
-			{
-				if( ( dirFind.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) == FILE_ATTRIBUTE_DIRECTORY )
-				{
-					if( strcmp( dirFind.cFileName, "." ) && strcmp( dirFind.cFileName, ".." ) )
-					{
-						temp = BuildPath( dirFind.cFileName );
-						subdirectories.push_back( cDirectoryListing( temp, extension, doRecursion ) );
-					}
-					// it's a directory
-				}
-			}
-		}
-		if( directoryHandle != INVALID_HANDLE_VALUE )
-		{
-			FindClose( directoryHandle );
-			directoryHandle = INVALID_HANDLE_VALUE;
 		}
 	}
-#endif
 }
 
 void cDirectoryListing::Extension( std::string extent )

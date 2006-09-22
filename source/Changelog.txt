@@ -1,3 +1,8 @@
+22nd September, 2006 - Maarc
+
+	Begun transferring some of the stuff over to QT
+	Updated cDirectoryListing to use QDirs instead, resulting in a simplified internal structure and portability
+
 21st September, 2006 - Maarc
 
 	Added commentary to some of the party classes headers
