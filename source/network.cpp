@@ -17,6 +17,8 @@
 
 #include "ObjectFactory.h"
 
+#include <QTNetwork>
+
 #if UOX_PLATFORM != PLATFORM_WIN32
 	#include <sys/ioctl.h>
 #endif
@@ -217,6 +219,7 @@ void cNetworkStuff::LogOut( CSocket *s )
 
 void cNetworkStuff::sockInit( void )
 {
+	serverSocket	= new QTcpServer( this );
 	int bcode;
 	
 	cwmWorldState->SetKeepRun( true );
@@ -225,53 +228,22 @@ void cNetworkStuff::sockInit( void )
 #if UOX_PLATFORM != PLATFORM_WIN32
 	int on = 1;
 #endif
-	
-	a_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
-	if( a_socket < 0 )
-	{
-		Console.Error( " Unable to create socket");
-#if UOX_PLATFORM == PLATFORM_WIN32
-		Console.Error( " Code %i", WSAGetLastError() );
-#else
-		Console << myendl;
-#endif
-		cwmWorldState->SetKeepRun( false );
-		cwmWorldState->SetError( true );
-		Shutdown( FATAL_UOX3_ALLOC_NETWORK );
-		return;
-	}
-#if UOX_PLATFORM != PLATFORM_WIN32
-	setsockopt( a_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof( on ) );
-#endif
-	
-	UI32 len_connection_addr = sizeof( struct sockaddr_in );
-	sockaddr_in connection;
-	memset( (char *) &connection, 0, len_connection_addr );
-	connection.sin_family = AF_INET;
-	connection.sin_addr.s_addr = htonl( INADDR_ANY );
-	connection.sin_port = htons( cwmWorldState->ServerData()->ServerPort() );
-	bcode = bind( a_socket, (struct sockaddr *)&connection, len_connection_addr );
-	
-	if( bcode < 0 )
-	{
-		Console.Error( " Unable to bind socket 1 - Error code: %i", bcode );
-		cwmWorldState->SetKeepRun( false );
-		cwmWorldState->SetError( true );
-		Shutdown( FATAL_UOX3_ALLOC_NETWORK );
-		return;
-	}
-    
-	
-	UI32 mode = 1;
-	// set the socket to nonblocking
-	ioctlsocket( a_socket, FIONBIO, &mode );
 
-	listen( a_socket, 42 );
+	if( !serverSocket->listen( QHostAddress::Any, cwmWorldState->ServerData()->ServerPort() ) )
+	{
+		Console.Error( " Unable to create QTcpServer - Error code: %s", serverSocket->errorString().toStdString().c_str() );
+		cwmWorldState->SetKeepRun( false );
+		cwmWorldState->SetError( true );
+		Shutdown( FATAL_UOX3_ALLOC_NETWORK );
+		return;
+	}	
+	else
+		connect( serverSocket, SIGNAL( newConnection() ), this, SLOT( incomingConnections() ) );
 }
 
 void cNetworkStuff::SockClose( void ) // Close all sockets for shutdown
 {
-	closesocket( a_socket );
+	serverSocket->close();
 	for( SOCKLIST_CITERATOR toClose = connClients.begin(); toClose != connClients.end(); ++toClose )
 	{
 		(*toClose)->CloseSocket();
@@ -291,44 +263,11 @@ void cNetworkStuff::SockClose( void ) // Close all sockets for shutdown
 
 void cNetworkStuff::CheckConn( void ) // Check for connection requests
 {
-	FD_ZERO( &conn );
-	FD_SET( a_socket, &conn );
-	int nfds = a_socket + 1;
-	int s = select( nfds, &conn, NULL, NULL, &cwmWorldState->uoxtimeout );
-	if( s > 0 )
-	{
-		int len = sizeof( struct sockaddr_in );
-		size_t newClient;
-#if UOX_PLATFORM == PLATFORM_WIN32
-		newClient = accept( a_socket, (struct sockaddr *)&client_addr, &len );
-#else
-		newClient = accept( a_socket, (struct sockaddr *)&client_addr, (socklen_t *)&len );
-		if( newClient >= FD_SETSIZE )
-		{
-			Console.Error( "accept() returning unselectable fd!" );
-			return;
-		}
-#endif
-		CSocket *toMake = new CSocket( newClient );
-		if( newClient < 0 )
-		{
-#if UOX_PLATFORM == PLATFORM_WIN32
-			int errorCode = WSAGetLastError();
-			if( errorCode == WSAEWOULDBLOCK )
-#else
-			int errorCode = errno;
-			if( errorCode == EWOULDBLOCK )
-#endif
-			{
-				delete toMake;
-				return;
-			}
-			Console.Error( "Error at client connection!" );
-			cwmWorldState->SetKeepRun( true );
-			cwmWorldState->SetError( true );
-			delete toMake;
-			return;
-		}
+#pragma note( "This doesn't actually work with QT's slots and signals, so it's largely dead"
+	if( serverSocket->hasPendingConnections() )
+	{	// Never reach inside here with QT
+		QTcpSocket *tSock	= serverSocket->nextPendingConnection();
+		CSocket *toMake		= new CSocket( tSock );
 		//	EviLDeD	-	April 5, 2000
 		//	Due to an attack on the shard, and the true inability to determine who did what 
 		//	I am implementing a ShitList, any IP on this list will be immediatly dropped.
@@ -336,7 +275,8 @@ void cNetworkStuff::CheckConn( void ) // Check for connection requests
 		//	a shard that they can easily create new accounts automatically on.
 		//	ListFormat: x.x.x.x --> * means any for that domain class
 		//   _  _  _ 
-		UI08 part[4];
+#pragma todo( "We need to update the firewall code here to deal with new QT socket types" )
+/*		UI08 part[4];
 		part[0] = (UI08)(client_addr.sin_addr.s_addr&0xFF);
 		part[1] = (UI08)((client_addr.sin_addr.s_addr&0xFF00)>>8);
 		part[2] = (UI08)((client_addr.sin_addr.s_addr&0xFF0000)>>16);
@@ -354,15 +294,11 @@ void cNetworkStuff::CheckConn( void ) // Check for connection requests
 		messageLoop << temp;
 		sprintf( temp, "Client %i [%i.%i.%i.%i] connected [Total:%i]", cwmWorldState->GetPlayersOnline(), part[0], part[1], part[2], part[3], cwmWorldState->GetPlayersOnline() + 1 );
 		messageLoop << temp;
+		*/
+		char temp[128];
+		sprintf( temp, "Client %i connected [Total:%i]", cwmWorldState->GetPlayersOnline(), cwmWorldState->GetPlayersOnline() + 1 );
+		messageLoop << temp;
 		loggedInClients.push_back( toMake );
-		toMake->ClientIP( client_addr.sin_addr.s_addr );
-		return;
-	}
-	if( s < 0 )
-	{
-		Console.Error( " Select (Conn) failed!" );
-		cwmWorldState->SetKeepRun( false );
-		cwmWorldState->SetError( true );
 		return;
 	}
 }
@@ -398,71 +334,49 @@ cNetworkStuff::~cNetworkStuff()
 	{
 		connClients[i]->FlushBuffer();
 		connClients[i]->CloseSocket();
-		s = UOX_MAX( s, connClients[i]->CliSocket() + 1 );
 		delete connClients[i];
 	}
 
 	loggedInClients.resize( 0 );
 	connClients.resize( 0 );
-	closesocket( s );
-#if UOX_PLATFORM == PLATFORM_WIN32
-	WSACleanup();
-#endif
+	delete serverSocket;
 }
 
 void cNetworkStuff::CheckMessage( void ) // Check for messages from the clients
 {
-	FD_ZERO(&all);
-	FD_ZERO(&errsock);
-	int nfds = 0;
-	for( SOCKLIST_CITERATOR toCheck = connClients.begin(); toCheck != connClients.end(); ++toCheck )
+#pragma note( "Come back and test this code once we know that we can actually get a connected client" )
+	size_t oldnow = cwmWorldState->GetPlayersOnline();
+	for( size_t i = 0; i < cwmWorldState->GetPlayersOnline(); ++i )
 	{
-		int clientSock = (*toCheck)->CliSocket();
-		FD_SET( clientSock, &all );
-		FD_SET( clientSock, &errsock );
-		if( clientSock + 1 > nfds )
-			nfds = clientSock + 1;
-	}
-	int s = select( nfds, &all, NULL, &errsock, &cwmWorldState->uoxtimeout );
-	if( s > 0 )
-	{
-		size_t oldnow = cwmWorldState->GetPlayersOnline();
-		for( size_t i = 0; i < cwmWorldState->GetPlayersOnline(); ++i )
+		if( connClients[i]->CliSocket()->state() != QAbstractSocket::ConnectedState )
 		{
-			if( FD_ISSET( connClients[i]->CliSocket(), &errsock ) )
+			Disconnect( i );
+		}
+		if( (oldnow == cwmWorldState->GetPlayersOnline()) && connClients[i]->CliSocket()->bytesAvailable() != 0 )
+		{
+			try
 			{
-				Disconnect( i );
+				GetMsg( i );
 			}
-			if( ( FD_ISSET( connClients[i]->CliSocket(), &all ) ) && ( oldnow == cwmWorldState->GetPlayersOnline() ) )
+			catch( socket_error& blah )
 			{
-				try
-				{
-					GetMsg( i );
-				}
-				catch( socket_error& blah )
-				{
 #if UOX_PLATFORM != PLATFORM_WIN32
-						Console << "Client disconnected" << myendl;
+				Console << "Client disconnected" << myendl;
 #else
-					if( blah.ErrorNumber() == WSAECONNRESET )
-						Console << "Client disconnected" << myendl;
-					else if( blah.ErrorNumber() != -1 )
-						Console << "Socket error: " << (SI32)blah.ErrorNumber() << myendl;
+				if( blah.ErrorNumber() == WSAECONNRESET )
+					Console << "Client disconnected" << myendl;
+				else if( blah.ErrorNumber() != -1 )
+					Console << "Socket error: " << (SI32)blah.ErrorNumber() << myendl;
 #endif
-					Disconnect( i );	// abnormal error
-				}
+				Disconnect( i );	// abnormal error
 			}
 		}
-	}
-	else if( s == SOCKET_ERROR )
-	{
 	}
 }
 
 
-cNetworkStuff::cNetworkStuff() : peakConnectionCount( 0 ) // Initialize sockets
+cNetworkStuff::cNetworkStuff() : peakConnectionCount( 0 ), serverSocket( NULL ) // Initialize sockets
 {
-	FD_ZERO( &conn );
 	sockInit();
 	LoadFirewallEntries();
 }
@@ -777,14 +691,13 @@ void cNetworkStuff::GetMsg( UOXSOCKET s ) // Receive message from client
 					case 0xD9:
 						break;
 					default:
-						FD_ZERO( &all );
-						FD_SET( mSock->CliSocket(), &all );
-						int nfds;
-						nfds = mSock->CliSocket() + 1;
-						if( select( nfds, &all, NULL, NULL, &cwmWorldState->uoxtimeout ) > 0 ) 
-							mSock->Receive( 2560 );
-						sprintf( temp, "Unknown message from client: 0x%02X - Ignored", packetID );
-						Console << temp << myendl;
+						{	
+#pragma note( "Test this later" )
+							QTcpSocket *tSock = mSock->CliSocket();
+							QByteArray mArray = tSock->readAll();
+							sprintf( temp, "Unknown message from client: 0x%02X - Ignored", packetID );
+							Console << temp << myendl;
+						}
 						break;
 				}
 			}
@@ -797,68 +710,40 @@ void cNetworkStuff::GetMsg( UOXSOCKET s ) // Receive message from client
 
 void cNetworkStuff::CheckLoginMessage( void ) // Check for messages from the clients
 {
-	fd_set all;
-	fd_set errsock;
-	size_t i;
-	
-	cwmWorldState->uoxtimeout.tv_sec = 0;
-	cwmWorldState->uoxtimeout.tv_usec = 1;
-
-	FD_ZERO( &all );
-	FD_ZERO( &errsock );
-	
-	size_t nfds = 0;
-	for( i = 0; i < loggedInClients.size(); ++i )
+#pragma note( "Come back and check this once we know we can connect" )
+	cwmWorldState->uoxtimeout.tv_sec	= 0;
+	cwmWorldState->uoxtimeout.tv_usec	= 1;
+	size_t oldnow						= loggedInClients.size();
+	for( size_t i = 0; i < loggedInClients.size(); ++i )
 	{
-		size_t clientSock = loggedInClients[i]->CliSocket();
-		FD_SET( clientSock, &all );
-		FD_SET( clientSock, &errsock );
-		if( clientSock + 1 > nfds )
-			nfds = clientSock + 1;
-	}
-	int s = select( nfds, &all, NULL, &errsock, &cwmWorldState->uoxtimeout );
-	if( s > 0 )
-	{
-		size_t oldnow = loggedInClients.size();
-		for( i = 0; i < loggedInClients.size(); ++i )
+		if( loggedInClients[i]->CliSocket()->state() != QAbstractSocket::ConnectedState )
 		{
-			if( FD_ISSET( loggedInClients[i]->CliSocket(), &errsock ) )
+			LoginDisconnect( i );
+			continue;
+		}
+		if( (oldnow == loggedInClients.size()) && loggedInClients[i]->CliSocket()->bytesAvailable() != 0 )
+		{
+			try
 			{
-				LoginDisconnect( i );
-				continue;
+				GetLoginMsg( i );
 			}
-			if( ( FD_ISSET( loggedInClients[i]->CliSocket(), &all ) ) && ( oldnow == loggedInClients.size() ) )
+			catch( socket_error& blah )
 			{
-				try
-				{
-					GetLoginMsg( i );
-				}
-				catch( socket_error& blah )
-				{
 #if UOX_PLATFORM != PLATFORM_WIN32
-						messageLoop << "Client disconnected";
+				messageLoop << "Client disconnected";
 #else
-					if( blah.ErrorNumber() == WSAECONNRESET )
-						messageLoop << "Client disconnected";
-					else if( blah.ErrorNumber() != -1 )
-					{
-						char temp[128];
-						sprintf( temp, "Socket error: %li", blah.ErrorNumber() );
-						messageLoop << temp;
-					}
-#endif
-					LoginDisconnect( i );	// abnormal error
+				if( blah.ErrorNumber() == WSAECONNRESET )
+					messageLoop << "Client disconnected";
+				else if( blah.ErrorNumber() != -1 )
+				{
+					char temp[128];
+					sprintf( temp, "Socket error: %li", blah.ErrorNumber() );
+					messageLoop << temp;
 				}
+#endif
+				LoginDisconnect( i );	// abnormal error
 			}
 		}
-	}
-	else if( s == SOCKET_ERROR )
-	{
-#if UOX_PLATFORM == PLATFORM_WIN32
-		int errorCode = WSAGetLastError();
-		if( errorCode != 10022 )
-			Console << (SI32)errorCode << myendl;
-#endif
 	}
 }
 
@@ -1058,13 +943,7 @@ void cNetworkStuff::GetLoginMsg( UOXSOCKET s )
 						mSock->Receive( mSock->GetWord( 1 ) );
 						break;
 					default:
-						int nfds;
-						fd_set all;
-						FD_ZERO( &all );
-						FD_SET( mSock->CliSocket(), &all );
-						nfds = mSock->CliSocket() + 1;
-						if( select( nfds, &all, NULL, NULL, &cwmWorldState->uoxtimeout ) > 0 ) 
-							mSock->Receive( 2560 );
+						mSock->CliSocket()->readAll();
 						sprintf( temp, "Unknown message from client: 0x%02X - Ignored", packetID );
 						messageLoop << temp;
 						break;
@@ -1227,6 +1106,29 @@ void cNetworkStuff::PopLogg( void )
 	currLoggIter = loggIteratorBackup.back();
 	loggIteratorBackup.pop_back();
 	Off();
+}
+
+void cNetworkStuff::incomingConnections()
+{
+	QTcpSocket* socket	= serverSocket->nextPendingConnection();
+	CSocket *toMake		= new CSocket( socket );
+	loggedInClients.push_back( toMake );
+
+	connect( toMake, SIGNAL(disconnected()), this, SLOT(partingConnections()) );
+
+	char temp[128];
+	sprintf( temp, "Client %i connected [Total:%i]", cwmWorldState->GetPlayersOnline(), cwmWorldState->GetPlayersOnline() + 1 );
+	messageLoop << temp;
+}
+
+void cNetworkStuff::partingConnections()
+{
+	CSocket* mSock	= qobject_cast<CSocket *>( sender() );
+	mSock->disconnect();
+	if( FindLoginPtr( mSock ) )
+		LoginDisconnect( mSock );
+	else
+		Disconnect( mSock );
 }
 
 }

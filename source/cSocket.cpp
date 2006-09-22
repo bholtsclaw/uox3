@@ -120,7 +120,7 @@ socket_error::socket_error( const long errorNumber ) : errorNum( errorNumber ), 
 //o---------------------------------------------------------------------------o
 //|   Purpose     -  Returns the socket identifier for our socket
 //o---------------------------------------------------------------------------o
-size_t CSocket::CliSocket( void ) const
+QTcpSocket *CSocket::CliSocket( void ) const
 {
 	return cliSocket;
 }
@@ -132,12 +132,12 @@ size_t CSocket::CliSocket( void ) const
 //o---------------------------------------------------------------------------o
 //|   Purpose     -  Assigns a new socket value
 //o---------------------------------------------------------------------------o
-void CSocket::CliSocket( size_t newValue )
+void CSocket::CliSocket( QTcpSocket *newValue )
 {
 	cliSocket = newValue;
-	UI32 mode = 1;
+//	UI32 mode = 1;
 	// set the socket to nonblocking
-	ioctlsocket( cliSocket, FIONBIO, &mode );
+//	ioctlsocket( cliSocket, FIONBIO, &mode );
 }
 
 //o---------------------------------------------------------------------------o
@@ -343,7 +343,7 @@ void CSocket::DyeAll( UI08 newValue )
 //o---------------------------------------------------------------------------o
 void CSocket::CloseSocket( void )
 {
-	closesocket( cliSocket );
+	cliSocket->close();
 }
 
 //o---------------------------------------------------------------------------o
@@ -519,7 +519,7 @@ const UI32				DEFSOCK_BYTESRECEIVED			= 0;
 const bool				DEFSOCK_RECEIVEDVERSION			= false;
 const bool				DEFSOCK_LOGINCOMPLETE			= false;
 
-CSocket::CSocket( size_t sockNum ) : currCharObj( NULL ), idleTimeout( DEFSOCK_IDLETIMEOUT ), 
+CSocket::CSocket( QTcpSocket *sockNum ) : currCharObj( NULL ), idleTimeout( DEFSOCK_IDLETIMEOUT ), 
 tempint( DEFSOCK_TEMPINT ), dyeall( DEFSOCK_DYEALL ), clickz( DEFSOCK_CLICKZ ), newClient( DEFSOCK_NEWCLIENT ), firstPacket( DEFSOCK_FIRSTPACKET ), 
 range( DEFSOCK_RANGE ), cryptclient( DEFSOCK_CRYPTCLIENT ), cliSocket( sockNum ), walkSequence( DEFSOCK_WALKSEQUENCE ),  clickx( DEFSOCK_CLICKX ), 
 currentSpellType( DEFSOCK_CURSPELLTYPE ), outlength( DEFSOCK_OUTLENGTH ), inlength( DEFSOCK_INLENGTH ), logging( DEFSOCK_LOGGING ), clicky( DEFSOCK_CLICKY ), 
@@ -536,7 +536,7 @@ CSocket::~CSocket()
 
 	if( ValidateObject( currCharObj ) )
 		currCharObj->SetSocket( NULL );
-	closesocket( cliSocket );
+	cliSocket->close();
 }
 
 void CSocket::InternalReset( void )
@@ -547,8 +547,8 @@ void CSocket::InternalReset( void )
 	addid[0] = addid[1] = addid[2] = addid[3] = 0;
 	clientip[0] = clientip[1] = clientip[2] = clientip[3] = 0;
 	// set the socket to nonblocking
-	UI32 mode = 1;
-	ioctlsocket( cliSocket, FIONBIO, &mode );
+//	UI32 mode = 1;
+//	ioctlsocket( cliSocket, FIONBIO, &mode );
 	for( int mTID = (int)tPC_SKILLDELAY; mTID < (int)tPC_COUNT; ++mTID )
 		pcTimers[mTID] = 0;
 	accountNum = AB_INVALID_ID;
@@ -609,10 +609,12 @@ bool CSocket::FlushBuffer( bool doLog )
 		{
 			UI08 xoutbuffer[MAXBUFFER*2];
 			len = Pack( outbuffer, xoutbuffer, outlength );
-			send( cliSocket, (char *)xoutbuffer, len, 0 );
+			cliSocket->write( (char *)xoutbuffer, len );
+//			send( cliSocket, (char *)xoutbuffer, len, 0 );
 		}
 		else
-			send( cliSocket, (char *)&outbuffer[0], outlength, 0 );
+			cliSocket->write( (char *)&outbuffer[0], outlength );
+//			send( cliSocket, (char *)&outbuffer[0], outlength, 0 );
 		if( Logging() && doLog )
 		{
 			SERIAL toPrint;
@@ -648,10 +650,12 @@ bool CSocket::FlushLargeBuffer( bool doLog )
 		{
 			largePackBuffer.resize( outlength * 2 );
 			int len = Pack( &largeBuffer[0], &largePackBuffer[0], outlength );
-			send( cliSocket, (char *)&largePackBuffer[0], len, 0 );
+//			send( cliSocket, (char *)&largePackBuffer[0], len, 0 );
+			cliSocket->write( (char *)&largePackBuffer[0], len );
 		}
 		else
-			send( cliSocket, (char *)&largeBuffer[0], outlength, 0 );
+//			send( cliSocket, (char *)&largeBuffer[0], outlength, 0 );
+			cliSocket->write( (char *)&largeBuffer[0], outlength );
 
 		if( Logging() && doLog )
 		{
@@ -810,10 +814,11 @@ int GrabLastError( void )
 void CSocket::FlushIncoming( void )
 {
 	int count = 0;
-	do
-	{
-		count = recv( cliSocket, (char *)&buffer[inlength], 1, 0 );
-	} while( count > 0 );
+//	do
+//	{
+//		count = recv( cliSocket, (char *)&buffer[inlength], 1, 0 );
+//	} while( count > 0 );
+	cliSocket->readAll();
 }
 
 void CSocket::ReceiveLogging( CPInputBuffer *toLog )
@@ -851,7 +856,8 @@ int CSocket::Receive( int x, bool doLog )
 	long nexTime		= curTime;
 	do
 	{
-		count = recv( cliSocket, (char *)&buffer[inlength], x - inlength, 0 );
+//		count = recv( cliSocket, (char *)&buffer[inlength], x - inlength, 0 );
+		count = cliSocket->read( (char *)&buffer[inlength], x - inlength );
 		if( count > 0 )
 		{
 			inlength += count;
@@ -1203,12 +1209,14 @@ void CSocket::Send( CPUOXBuffer *toSend )
 	if( cryptclient )
 	{
 		len = toSend->Pack();
-		send( cliSocket, (char *)toSend->PackedPointer(), len, 0 );
+//		send( cliSocket, (char *)toSend->PackedPointer(), len, 0 );
+		cliSocket->write( (char *)toSend->PackedPointer(), len );
 	}
 	else
 	{
 		len = toSend->GetPacketStream().GetSize();
-		send( cliSocket, (char *)toSend->GetPacketStream().GetBuffer(), len, 0 );
+//		send( cliSocket, (char *)toSend->GetPacketStream().GetBuffer(), len, 0 );
+		cliSocket->write( (char *)toSend->GetPacketStream().GetBuffer(), len );
 	}
 
 	bytesSent += len;

@@ -11,7 +11,16 @@
 //o--------------------------------------------------------------------------o
 //| Modifications	-	
 //o--------------------------------------------------------------------------o
+
+// Have to include like this until we fully shift over ... QT and JS both define something called 'slots'
+// and we need to include JS first
+#include "Platform.h"
+
+#include "jsobj.h"
+#include "jsutil.h"
+
 #include "uox3.h"
+
 #include "UOXJSClasses.h"
 #include "UOXJSPropertySpecs.h"
 #include "UOXJSPropertyEnums.h"
@@ -33,9 +42,6 @@
 #include "ssection.h"
 #include "classes.h"
 #include "movement.h"
-
-#include "jsobj.h"
-#include "jsutil.h"
 
 #include "PartySystem.h"
 

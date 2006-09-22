@@ -2,6 +2,7 @@
 #define __CNETWORK_H__
 
 #include "threadsafeobject.h"
+#include <QTNetwork>
 
 namespace UOX
 {
@@ -166,8 +167,9 @@ public:
 	CSocket *				GetSocket( void ) const;
 };
 
-class cNetworkStuff
+class cNetworkStuff : public QObject
 {
+	Q_OBJECT
 public:
 				cNetworkStuff();
 				~cNetworkStuff();
@@ -226,6 +228,7 @@ private:
 
 	std::map< UI16, UI16 >			packetOverloads;
 	std::vector< FirewallEntry >	slEntries;
+	QTcpServer *			serverSocket;
 	int						a_socket;
 	SOCKLIST				connClients, loggedInClients;
 
@@ -248,6 +251,9 @@ private:
 
 	bool		IsFirewallBlocked( UI08 part[4] );
 
+private slots:
+	void		incomingConnections();
+	void		partingConnections();
 };
 
 extern cNetworkStuff *Network;

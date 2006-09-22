@@ -1,6 +1,11 @@
 #ifndef __CSOCKET_H__
 #define __CSOCKET_H__
 
+#include <QTNetwork>
+
+#include "Prerequisites.h"
+#include "cAccountClass.h"
+
 namespace UOX
 {
 
@@ -27,8 +32,9 @@ enum cS_TID
 	tPC_COUNT
 };
 
-class CSocket
+class CSocket : public QObject
 {
+	Q_OBJECT
 public:
 	// Account Related Member(s)
 	CAccountBlock&	GetAccount( void );
@@ -68,7 +74,7 @@ private:
 	bool			firstPacket;
 	bool			cryptclient;
 
-	size_t			cliSocket;		// client
+	QTcpSocket *	cliSocket;		// client
 	UI08			clientip[4];
 	SI16			walkSequence;
 
@@ -110,7 +116,7 @@ private:
 	// Timer Vals moved here from CChar due to their inherently temporary nature and to reduce wasted memory
 	TIMERVAL		pcTimers[tPC_COUNT];
 public:
-					CSocket( size_t sockNum );
+					CSocket( QTcpSocket *sockNum );
 					~CSocket();
 
 	UI32			ClientVersion( void ) const;
@@ -150,7 +156,7 @@ public:
 	UI16			AcctNo( void ) const;
 	std::string		XText( void );
 	bool			CryptClient( void ) const;
-	size_t			CliSocket( void ) const;
+	QTcpSocket *	CliSocket( void ) const;
 	UI08			CurrentSpellType( void ) const;
 	int				OutLength( void ) const;
 	int				InLength( void ) const;
@@ -208,7 +214,7 @@ public:
 	void			WalkSequence( SI16 newValue );
 	void			AcctNo( UI16 newValue );
 	void			CryptClient( bool newValue );
-	void			CliSocket( size_t newValue );
+	void			CliSocket( QTcpSocket *newValue );
 	void			CurrentSpellType( UI08 newValue );
 	void			OutLength( int newValue );
 	void			InLength( int newValue );

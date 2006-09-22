@@ -20,7 +20,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Zm200 -EHsc"
 				Optimization="0"
-				AdditionalIncludeDirectories="g:\Data\Development\qt\414\include\QtCore;g:\Data\Development\qt\414\include\QtNetwork;g:\Data\Development\qt\414\include\QtGui;g:\Data\Development\qt\414\include;.;..\..\..\..\..\mozilla\js\src;g:\Data\Development\qt\414\include\ActiveQt;debug;ui;&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot;"
+				AdditionalIncludeDirectories="g:\Data\Development\qt\414\include\QtCore,g:\Data\Development\qt\414\include\QtNetwork,g:\Data\Development\qt\414\include\QtGui,g:\Data\Development\qt\414\include,.,..\..\..\..\..\mozilla\js\src,g:\Data\Development\qt\414\include\ActiveQt,debug,ui,g:\Data\Development\qt\414\mkspecs\win32-msvc.net"
 				PreprocessorDefinitions="QT_LARGEFILE_SUPPORT,WIN32,QT_DLL,QT_GUI_LIB,QT_NETWORK_LIB,QT_CORE_LIB,QT_THREAD_SUPPORT"
 				GeneratePreprocessedFile="0"
 				MinimalRebuild="TRUE"
@@ -77,26 +77,17 @@
 			IntermediateDirectory="release\"
 			ConfigurationType="1"
 			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			WholeProgramOptimization="TRUE">
+			ATLMinimizesCRunTimeLibraryUsage="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Zm200 -EHsc"
-				Optimization="3"
-				GlobalOptimizations="TRUE"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="2"
-				EnableFiberSafeOptimizations="TRUE"
-				OptimizeForProcessor="3"
-				AdditionalIncludeDirectories="g:\Data\Development\qt\414\include\QtCore;g:\Data\Development\qt\414\include\QtNetwork;g:\Data\Development\qt\414\include\QtGui;g:\Data\Development\qt\414\include;.;..\..\..\..\..\mozilla\js\src;g:\Data\Development\qt\414\include\ActiveQt;release;ui;&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot;"
+				Optimization="1"
+				AdditionalIncludeDirectories="g:\Data\Development\qt\414\include\QtCore,g:\Data\Development\qt\414\include\QtNetwork,g:\Data\Development\qt\414\include\QtGui,g:\Data\Development\qt\414\include,.,..\..\..\..\..\mozilla\js\src,g:\Data\Development\qt\414\include\ActiveQt,release,ui,g:\Data\Development\qt\414\mkspecs\win32-msvc.net"
 				PreprocessorDefinitions="NDEBUG,QT_LARGEFILE_SUPPORT,WIN32,QT_DLL,QT_NO_DEBUG,QT_GUI_LIB,QT_NETWORK_LIB,QT_CORE_LIB,QT_THREAD_SUPPORT"
 				GeneratePreprocessedFile="0"
-				StringPooling="TRUE"
 				ExceptionHandling="TRUE"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="TRUE"
-				EnableFunctionLevelLinking="TRUE"
-				EnableEnhancedInstructionSet="2"
 				RuntimeTypeInfo="TRUE"
 				AssemblerListingLocation="release\"
 				ObjectFile="release\"
@@ -112,7 +103,7 @@
 				AdditionalDependencies="js32.lib ws2_32.lib qsa1.lib QtGui4.lib QtNetwork4.lib QtCore4.lib"
 				OutputFile="release\uox3.exe"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="g:\Data\Development\qt\414\lib;G:\Data\Development\CVS\mozilla\js\src\Release"
+				AdditionalLibraryDirectories="g:\Data\Development\qt\414\lib"
 				GenerateDebugInformation="FALSE"
 				ProgramDatabaseFile=""
 				SubSystem="1"/>
@@ -285,6 +276,42 @@
 			</File>
 			<File
 				RelativePath="mapstuff.cpp">
+			</File>
+			<File
+				RelativePath="release\moc_cSocket.cpp">
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="debug\moc_cSocket.cpp">
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="debug\moc_network.cpp">
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="release\moc_network.cpp">
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="movement.cpp">
@@ -463,6 +490,26 @@
 			</File>
 			<File
 				RelativePath="cSocket.h">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="MOC cSocket.h"
+						CommandLine="g:\Data\Development\qt\414\bin\moc.exe -DQT_LARGEFILE_SUPPORT -DWIN32 -DQT_DLL -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -DQT_THREAD_SUPPORT  -I &quot;G:\Data\Development\qt\414\include\QtCore&quot; -I &quot;G:\Data\Development\qt\414\include\QtNetwork&quot; -I &quot;G:\Data\Development\qt\414\include\QtGui&quot; -I &quot;G:\Data\mozilla\js\src&quot; -I &quot;G:\Data\Development\qt\414\include\ActiveQt&quot; -I &quot;debug&quot; -I &quot;ui&quot; -I&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot; cSocket.h -o debug\moc_cSocket.cpp
+"
+						AdditionalDependencies="g:\Data\Development\qt\414\bin\moc.exe"
+						Outputs="debug\moc_cSocket.cpp"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="MOC cSocket.h"
+						CommandLine="g:\Data\Development\qt\414\bin\moc.exe -DNDEBUG -DQT_LARGEFILE_SUPPORT -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -DQT_THREAD_SUPPORT  -I &quot;G:\Data\Development\qt\414\include\QtCore&quot; -I &quot;G:\Data\Development\qt\414\include\QtNetwork&quot; -I &quot;G:\Data\Development\qt\414\include\QtGui&quot; -I &quot;G:\Data\mozilla\js\src&quot; -I &quot;G:\Data\Development\qt\414\include\ActiveQt&quot; -I &quot;release&quot; -I &quot;ui&quot; -I&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot; cSocket.h -o release\moc_cSocket.cpp
+"
+						AdditionalDependencies="g:\Data\Development\qt\414\bin\moc.exe"
+						Outputs="release\moc_cSocket.cpp"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="cSpawnRegion.h">
@@ -517,6 +564,26 @@
 			</File>
 			<File
 				RelativePath="network.h">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="MOC network.h"
+						CommandLine="g:\Data\Development\qt\414\bin\moc.exe -DQT_LARGEFILE_SUPPORT -DWIN32 -DQT_DLL -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -DQT_THREAD_SUPPORT  -I &quot;G:\Data\Development\qt\414\include\QtCore&quot; -I &quot;G:\Data\Development\qt\414\include\QtNetwork&quot; -I &quot;G:\Data\Development\qt\414\include\QtGui&quot; -I &quot;G:\Data\mozilla\js\src&quot; -I &quot;G:\Data\Development\qt\414\include\ActiveQt&quot; -I &quot;debug&quot; -I &quot;ui&quot; -I&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot; network.h -o debug\moc_network.cpp
+"
+						AdditionalDependencies="g:\Data\Development\qt\414\bin\moc.exe"
+						Outputs="debug\moc_network.cpp"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="MOC network.h"
+						CommandLine="g:\Data\Development\qt\414\bin\moc.exe -DNDEBUG -DQT_LARGEFILE_SUPPORT -DWIN32 -DQT_DLL -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -DQT_THREAD_SUPPORT  -I &quot;G:\Data\Development\qt\414\include\QtCore&quot; -I &quot;G:\Data\Development\qt\414\include\QtNetwork&quot; -I &quot;G:\Data\Development\qt\414\include\QtGui&quot; -I &quot;G:\Data\mozilla\js\src&quot; -I &quot;G:\Data\Development\qt\414\include\ActiveQt&quot; -I &quot;release&quot; -I &quot;ui&quot; -I&quot;g:\Data\Development\qt\414\mkspecs\win32-msvc.net&quot; network.h -o release\moc_network.cpp
+"
+						AdditionalDependencies="g:\Data\Development\qt\414\bin\moc.exe"
+						Outputs="release\moc_network.cpp"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="ObjectFactory.h">
